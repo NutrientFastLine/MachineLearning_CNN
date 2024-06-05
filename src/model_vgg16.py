@@ -17,12 +17,12 @@ class CustomVGG16(nn.Module):
         self.features[0] = nn.Conv2d(1, 64, kernel_size=3, padding=1)  # 修改输入层
         self.avgpool = nn.AdaptiveAvgPool2d((7, 7))  # 保持自适应平均池化层
         self.classifier = torchvision.models.vgg16().classifier  # 加载分类层
-        self.classifier[-1] = nn.Linear(4096, 10)
+        self.classifier[-1] = nn.Linear(4096, 10)  # 修改输出层
 
     def forward(self, x):
         x = self.features(x)
         x = self.avgpool(x)
-        x = x.view(x.size(0), -1)
+        x = x.view(x.size(0), -1)  # 展平
         x = self.classifier(x)
         return x
 
@@ -33,4 +33,3 @@ if __name__ == '__main__':
     x1 = torch.ones((64, 1, 224, 224))  # 使用灰度图像
     output = model(x1)  # 调用实例的方法
     print(output.shape)  # 应该输出 torch.Size([64, 10])
-    print(type(model).__name__)

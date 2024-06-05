@@ -16,26 +16,35 @@ from sklearn.metrics import confusion_matrix
 
 
 class ModelTester:
-    def __init__(self, model, model_save_path):
+    def __init__(self, model, model_save_path, batch_size):
         """
         初始化模型测试类
 
         参数:
         model (torch.nn.Module): 要测试的模型
         model_save_path (str): 已训练模型参数的保存路径
+        batch_size (int): 批次大小
         """
+        # 获取参数
         self.model = model
         self.model_save_path = model_save_path
+        self.batch_size = batch_size
 
         # 数据预处理
         self.testset, self.testloader = self._load_data()
 
-        self.criterion = nn.CrossEntropyLoss()  # 定义损失函数，这里使用常用的交叉熵损失函数
-        self._load_model()  # 加载训练好的模型参数
-        self.filename_format = os.path.splitext(os.path.basename(model_save_path))[0]  # 获取去除后缀名的文件名
+        # 加载已经训练好的模型参数
+        self._load_model()
 
-        self.save_images_dir = './images'  # 可视化图像保存路径
+        # 定义损失函数
+        self.criterion = nn.CrossEntropyLoss()  # 这里使用常用的交叉熵损失函数
+
+        # 创建可视化图像保存文件夹
+        self.save_images_dir = '../images'
         self._create_save_images_dir()
+
+        # 获取去除后缀名的文件名
+        self.filename_format = os.path.splitext(os.path.basename(model_save_path))[0]
 
     def _load_data(self):
         """
@@ -44,22 +53,13 @@ class ModelTester:
         返回:
         DataLoader: 测试数据加载器
         """
-        if type(self.model).__name__ == 'SimpleCNN':
-            transform = transforms.Compose([
-                transforms.ToTensor(),
-                transforms.Normalize((0.5,), (0.5,))
-            ])
-        else:
-            print(type(self.model).__name__)
-            transform = transforms.Compose([
-                transforms.Resize((224, 224)),
-                transforms.ToTensor(),
-                transforms.Normalize((0.5,), (0.5,))
-            ])
-
-        testset = torchvision.datasets.FashionMNIST(root='./dataset', train=False, download=True,
+        transform = transforms.Compose([
+            transforms.ToTensor(),
+            transforms.Normalize((0.5,), (0.5,))
+        ])
+        testset = torchvision.datasets.FashionMNIST(root='../dataset', train=False, download=True,
                                                     transform=transform)
-        return testset, DataLoader(testset, batch_size=64, shuffle=False)
+        return testset, DataLoader(testset, batch_size=self.batch_size, shuffle=False)
 
     def _load_model(self):
         """
@@ -78,6 +78,7 @@ class ModelTester:
         """
         测试模型并输出结果
         """
+        # 定义一些在测试中用到的参数
         total_test_loss = 0  # 测试集整体损失，用于计算整体的平均损失
         total_accuracy = 0  # 测试集整体正确分类的数量，除以测试集样本数可以得到整体正确率
         total_samples = 0  # 记录测试集测试的样本数
@@ -94,7 +95,7 @@ class ModelTester:
                 loss = self.criterion(outputs, labels)
 
                 batch_loss = loss.item()
-                # 计算在每一行中最大值的索引，找到每个样本的预测类别,之后将预测值与标签值对比，用sum求出所有准确数量。
+                # 计算在每一行中最大值的索引，从而找到每个样本的预测类别,之后将预测值与标签值对比，用sum求出所有准确数量，再除以数量得到准确率
                 batch_accuracy = (outputs.argmax(1) == labels).sum().item() / labels.size(0)
                 batch_losses.append(batch_loss)
                 batch_accuracies.append(batch_accuracy)
@@ -131,7 +132,7 @@ class ModelTester:
         plt.figure(figsize=(12, 5))
 
         plt.subplot(1, 2, 1)
-        plt.plot(batch_losses, label='Batch Loss')
+        plt.plot(batch_losses, label='Batch eval Loss')
         plt.axhline(y=avg_loss, color='r', linestyle='-', label=f'Avg Loss: {avg_loss:.4f}')  # 显示均值直线
         plt.title(self.filename_format)
         plt.xlabel('Batch Number')
@@ -139,7 +140,7 @@ class ModelTester:
         plt.legend()
 
         plt.subplot(1, 2, 2)
-        plt.plot(batch_accuracies, label='Batch Accuracy')
+        plt.plot(batch_accuracies, label='Batch eval Accuracy')
         plt.axhline(y=avg_accuracy, color='g', linestyle='-', label=f'Avg Accuracy: {avg_accuracy:.4f}')
         plt.title(self.filename_format)
         plt.xlabel('Batch Number')
@@ -147,7 +148,7 @@ class ModelTester:
         plt.legend()
 
         plt.tight_layout()
-        results_path = os.path.join(self.save_images_dir, f'{self.filename_format}_LossAccuracy.png')
+        results_path = os.path.join(self.save_images_dir, f'{self.filename_format}_Test.png')
         plt.savefig(results_path)
         print(f'结果图已保存到: {results_path}')
         plt.show()
