@@ -13,8 +13,8 @@ from model_LeNet5 import LeNet5
 from model_vgg16 import CustomVGG16
 
 # 选择使用的模型
-# model = SimpleCNN()
-model = SimpleCNNDropout()
+model = SimpleCNN()
+# model = SimpleCNNDropout()
 # model = LeNet5()
 # model = CustomVGG16()
 
